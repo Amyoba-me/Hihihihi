@@ -5,10 +5,10 @@ import asyncio
 from datetime import datetime, timedelta
 import aiosqlite
 from aiogram import Bot, Dispatcher, F, types
-from aiogram.filters import Command, or_
+from aiogram.filters import Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# Считываем токен из переменных окружения хостинга
+# Считываем токен из переменных окружения
 TOKEN = os.getenv("BOT_TOKEN")
 
 if not TOKEN:
@@ -130,7 +130,8 @@ async def process_add_hours(message: types.Message):
     except ValueError:
         pass  # Игнорируем обычные сообщения
 
-@dp.message(or_(Command("стата"), F.text.lower() == "!стата"))
+# В aiogram 3 объединять условия можно через оператор `|`
+@dp.message(Command("стата") | (F.text.lower() == "!стата"))
 async def process_stats(message: types.Message):
     user_id = message.from_user.id
     now = datetime.now()
@@ -139,7 +140,6 @@ async def process_stats(message: types.Message):
     
     async with aiosqlite.connect(DB_PATH) as db:
         for i in range(3):
-            # Вычисление месяца назад
             month_date = now - timedelta(days=i*30)
             year = month_date.year
             month = month_date.month
