@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  income_bot:
+    build: .
+    container_name: income_tracker_bot
+    restart: always
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+    volumes:
+      - ./data:/app/data
