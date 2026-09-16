@@ -1,7 +1,7 @@
-import asyncio
 import os
 import sys
 import logging
+import asyncio
 from datetime import datetime, timedelta
 import aiosqlite
 from aiogram import Bot, Dispatcher, F, types
@@ -23,7 +23,8 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-scheduler = AsyncIOScheduler()
+# Настраиваем планировщик на московское время
+scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
 
 # ------------------- РАБОТА С БАЗОЙ ДАННЫХ -------------------
 
@@ -174,7 +175,23 @@ async def process_stats(message: types.Message):
 
     await message.answer(stats_text, parse_mode="Markdown")
 
-# ------------------- АВТОМАТИЧЕСКИЕ ОТЧЕТЫ (CRON) -------------------
+# ------------------- АВТОМАТИЧЕСКИЕ НАПОМИНАНИЯ И ОТЧЕТЫ (CRON) -------------------
+
+async def send_daily_reminder():
+    """Ежедневное напоминание о записи часов в 22:00 и 23:00 по МСК"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT DISTINCT user_id FROM users") as cursor:
+            users = await cursor.fetchall()
+            
+        for (user_id,) in users:
+            try:
+                await bot.send_message(
+                    user_id,
+                    "⏰ Не забудь записать отработанные часы за сегодня! (например: `+8` или `+12`)",
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                logging.error(f"Не удалось отправить напоминание {user_id}: {e}")
 
 async def send_advance_report():
     """Отправляется 30 числа: отчет по авансу за период с 1 по 15 число текущего месяца"""
@@ -243,9 +260,13 @@ async def main():
     logging.basicConfig(level=logging.INFO)
     await init_db()
     
-    # Отправка аванса 30 числа в 10:00
+    # Напоминалки записать часы (в 22:00 и 23:00 по МСК каждый день)
+    scheduler.add_job(send_daily_reminder, 'cron', hour=22, minute=0)
+    scheduler.add_job(send_daily_reminder, 'cron', hour=23, minute=0)
+    
+    # Отправка аванса 30 числа в 10:00 MSK
     scheduler.add_job(send_advance_report, 'cron', day=30, hour=10, minute=0)
-    # Отправка зарплаты 15 числа в 10:00
+    # Отправка зарплаты 15 числа в 10:00 MSK
     scheduler.add_job(send_main_salary_report, 'cron', day=15, hour=10, minute=0)
     
     scheduler.start()
