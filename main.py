@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime, timedelta
 import aiosqlite
 from aiogram import Bot, Dispatcher, F, types
-from aiogram.filters import Command
+from aiogram.filters import Command, or_
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # Считываем токен из переменных окружения хостинга
@@ -130,7 +130,7 @@ async def process_add_hours(message: types.Message):
     except ValueError:
         pass  # Игнорируем обычные сообщения
 
-@dp.message(Command("стата") | (F.text.lower() == "!стата"))
+@dp.message(or_(Command("стата"), F.text.lower() == "!стата"))
 async def process_stats(message: types.Message):
     user_id = message.from_user.id
     now = datetime.now()
