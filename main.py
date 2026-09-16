@@ -131,7 +131,8 @@ async def process_add_hours(message: types.Message):
         pass  # Игнорируем обычные сообщения
 
 # В aiogram 3 объединять условия можно через оператор `|`
-@dp.message(Command("стата") | (F.text.lower() == "!стата"))
+@dp.message(Command("стата"))
+@dp.message(F.text.lower() == "!стата")
 async def process_stats(message: types.Message):
     user_id = message.from_user.id
     now = datetime.now()
@@ -140,6 +141,7 @@ async def process_stats(message: types.Message):
     
     async with aiosqlite.connect(DB_PATH) as db:
         for i in range(3):
+            # Вычисление месяца назад
             month_date = now - timedelta(days=i*30)
             year = month_date.year
             month = month_date.month
